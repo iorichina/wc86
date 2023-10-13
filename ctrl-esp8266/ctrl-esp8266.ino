@@ -51,8 +51,7 @@ void escWriteTo(int target)
   {
     for (int val = old; val <= escDegree; val += 1)
     {
-      val = constrain(val, 0, 180);
-      ESC.write(val);
+      ESC.write(constrain(val, old, escDegree));
       delay(5);
     }
     escLock = false;
@@ -61,8 +60,7 @@ void escWriteTo(int target)
 
   for (int val = old; val >= escDegree; val -= 1)
   {
-    val = constrain(val, 0, 180);
-    ESC.write(val);
+    ESC.write(constrain(val, escDegree, old));
     delay(5);
   }
   escLock = false;
@@ -89,8 +87,7 @@ void servoWriteTo(int target)
   {
     for (int val = old; val <= servoDegree; val += 3)
     {
-      val = constrain(val, 0, 180);
-      servo.write(val);
+      servo.write(constrain(val, old, servoDegree));
       delay(3);
     }
     servoLock = false;
@@ -99,8 +96,7 @@ void servoWriteTo(int target)
 
   for (int val = old; val >= servoDegree; val -= 3)
   {
-    val = constrain(val, 0, 180);
-    servo.write(val);
+    servo.write(constrain(val, servoDegree, old));
     delay(3);
   }
   servoLock = false;
