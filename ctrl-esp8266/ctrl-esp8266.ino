@@ -41,14 +41,22 @@ void escWriteTo(int target)
   escLock = true;
   int old = escDegree;
   escDegree = target;
+
+  // stay
   if (target == old)
   {
     ESC.write(escDegree);
     escLock = false;
     return;
   }
+
+  // move faster or go back
   if (target > old)
   {
+    Serial.print("move faster or go back from ");
+    Serial.print(old);
+    Serial.print(" to ");
+    Serial.println(escDegree);
     for (int val = old; val <= escDegree; val += 1)
     {
       ESC.write(constrain(val, old, escDegree));
@@ -58,6 +66,11 @@ void escWriteTo(int target)
     return;
   }
 
+  // slow down or go forward
+  Serial.print("slow down or go forward from ");
+  Serial.print(old);
+  Serial.print(" to ");
+  Serial.println(escDegree);
   for (int val = old; val >= escDegree; val -= 1)
   {
     ESC.write(constrain(val, escDegree, old));
@@ -77,27 +90,40 @@ void servoWriteTo(int target)
   servoLock = true;
   int old = servoDegree;
   servoDegree = target;
+
+  // stay
   if (target == old)
   {
     servo.write(servoDegree);
     servoLock = false;
     return;
   }
+
+  // go left
   if (target > old)
   {
-    for (int val = old; val <= servoDegree; val += 3)
+    Serial.print("go left from ");
+    Serial.print(old);
+    Serial.print(" to ");
+    Serial.println(servoDegree);
+    for (int val = old; val <= servoDegree; val += 10)
     {
       servo.write(constrain(val, old, servoDegree));
-      delay(3);
+      delay(5);
     }
     servoLock = false;
     return;
   }
 
-  for (int val = old; val >= servoDegree; val -= 3)
+  // go right
+  Serial.print("go right from ");
+  Serial.print(old);
+  Serial.print(" to ");
+  Serial.println(servoDegree);
+  for (int val = old; val >= servoDegree; val -= 10)
   {
     servo.write(constrain(val, servoDegree, old));
-    delay(3);
+    delay(5);
   }
   servoLock = false;
 }
