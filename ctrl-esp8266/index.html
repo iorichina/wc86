@@ -1,0 +1,32 @@
+<html>
+
+<head>
+    <script>
+        var cs = console;
+        var conn = new WebSocket('ws://' + location.hostname + ':9998/', ['arduino', ]);
+        conn.onopen = function () {
+            conn.send('Connect ' + new Date());
+            ctr();
+        };
+        conn.onerror = function (error) {
+            cs.log('WebSocket Error ', error);
+        };
+        conn.onmessage = function (e) {
+            cs.log('Server: ', e.data);
+        };
+        function ctr() {
+            var s = (document.getElementById('SPEED').value);
+            var d = (document.getElementById('DIREC').value);
+            var v = '#' + s + ',' + d;
+            conn.send(v);
+            cs.log('send: ' + v);
+        }
+    </script>
+</head>
+
+<body>
+    SPEED: <input id='SPEED' type='range' style='transform: rotate(-90deg);height: 129px;' value='0' min='-100' max='100' step='5' oninput='ctr();' /><br />
+    DIREC: <input id='DIREC' type='range' value='0' min='-100' max='100' step='5' oninput='ctr();' /><br />
+</body>
+
+</html>

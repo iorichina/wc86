@@ -13,7 +13,12 @@
 #include <Hash.h>
 #include <String.h>
 
-#include "wifi_config.h" // <<< create file and add wifi config ```const char* ssid = ; const char* password = ;```
+#ifndef LED_BUILTIN
+#define LED_BUILTIN 2
+#endif
+
+const char *apSsid = "wcctrl8266"; // without pass
+#include "wifi_config.h"           // <<< create file and add wifi config ```const char* ssid = "";const char* password = "";```
 
 ESP8266WebServer server(80);
 WebSocketsServer webSocket = WebSocketsServer(9998);
@@ -33,6 +38,13 @@ int servoDegree = 90;
 bool escLock = false;
 void escWriteTo(int target)
 {
+  if (true)
+  {
+    escDegree = target;
+    ESC.write(escDegree);
+    return;
+  }
+
   if (escLock)
   {
     escDegree = target;
@@ -57,7 +69,7 @@ void escWriteTo(int target)
     Serial.print(old);
     Serial.print(" to ");
     Serial.println(escDegree);
-    for (int val = old; val <= escDegree; val += 1)
+    for (int val = old; val <= escDegree; val += 5)
     {
       ESC.write(constrain(val, old, escDegree));
       delay(5);
@@ -71,7 +83,7 @@ void escWriteTo(int target)
   Serial.print(old);
   Serial.print(" to ");
   Serial.println(escDegree);
-  for (int val = old; val >= escDegree; val -= 1)
+  for (int val = old; val >= escDegree; val -= 5)
   {
     ESC.write(constrain(val, escDegree, old));
     delay(5);
@@ -82,6 +94,13 @@ void escWriteTo(int target)
 bool servoLock = false;
 void servoWriteTo(int target)
 {
+  if (true)
+  {
+    servoDegree = target;
+    servo.write(servoDegree);
+    return;
+  }
+
   if (servoLock)
   {
     servoDegree = target;
@@ -128,9 +147,21 @@ void servoWriteTo(int target)
   servoLock = false;
 }
 
-// speed [-100, 100](back, forward) map to [60, 120], direction [-100, 100](left, right) map to [10, 170]
+void writeTo(int speed, int direction)
+{
+  // do it for safty
+  speed = constrain(speed, 10, 170);
+  escWriteTo(speed);
+  // do it for safty
+  direction = constrain(direction, 10, 170);
+  servoWriteTo(direction);
+}
+
+// speed [-100, 100](back, forward) map to [10, 170], direction [-100, 100](left, right) map to [10, 170] at client
+long long ctrlTs = millis();
 void ctrl(int speed, int direction)
 {
+  ctrlTs = millis();
   speed = constrain(speed, -100, 100);
   direction = constrain(direction, -100, 100);
 
@@ -142,12 +173,16 @@ void ctrl(int speed, int direction)
   // go back
   else if (speed < 0)
   {
-    speed = map(-speed, 0, 100, 105, 108);
+    // do it at client
+    //  speed = map(-speed, 0, 100, 105, 108);
+    speed = map(-speed, 0, 100, 90, 180);
   }
   // go forward
   else
   {
-    speed = map(-speed, -100, 0, 68, 75);
+    // do it at client
+    //  speed = map(-speed, -100, 0, 68, 75);
+    speed = map(-speed, -100, 0, 0, 90);
   }
 
   // straight
@@ -158,12 +193,12 @@ void ctrl(int speed, int direction)
   // go left
   else if (direction < 0)
   {
-    direction = map(-direction, 0, 100, 90, 170);
+    direction = map(-direction, 0, 100, 90, 180);
   }
   // go right
   else
   {
-    direction = map(-direction, -100, 0, 10, 90);
+    direction = map(-direction, -100, 0, 0, 90);
   }
 
   Serial.print("Ctrl direction=");
@@ -171,11 +206,7 @@ void ctrl(int speed, int direction)
   Serial.print(", speed=");
   Serial.print(speed);
   Serial.println(".");
-
-  direction = constrain(direction, 10, 170);
-  servoWriteTo(direction);
-  speed = constrain(speed, 68, 108);
-  escWriteTo(speed);
+  writeTo(speed, direction);
 }
 
 void parseMotion(String str, int *speed, int *direction)
@@ -214,7 +245,7 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload, size_t length)
     Serial.printf("[%u] Connected from %d.%d.%d.%d url: %s\n", num, ip[0], ip[1], ip[2], ip[3], payload);
 
     // send message to client
-    webSocket.sendTXT(num, "Connected");
+    webSocket.sendTXT(num, "joystickClient");
   }
   break;
   case WStype_TEXT:
@@ -229,22 +260,97 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload, size_t length)
       // decode motion data Speed,Direction
       parseMotion(str, &speed, &direction);
 
-      ctrl(speed, direction);
       wsCtrTs = millis();
+      ctrl(speed, direction);
     }
 
     break;
   }
 }
 
+bool resetWifi(char *staSsid, char *staPassword, int wait)
+{
+  WiFi.disconnect();
+  WiFi.mode(WIFI_AP_STA);
+
+  WiFi.softAP(apSsid);              // 设置AP网络参数
+  IPAddress myIP = WiFi.softAPIP(); // 192.168.4.1
+  Serial.print("AP: ");
+  Serial.print(apSsid);
+  Serial.print(" IP address: ");
+  Serial.println(myIP);
+
+  WiFi.begin(staSsid, staPassword);
+  Serial.print("Connecting to wifi ");
+  Serial.println(staSsid);
+
+  // Wait for connection
+  for (size_t i = 0; i < wait; i++)
+  {
+    if (WiFi.status() == WL_CONNECTED)
+    {
+      break;
+    }
+    delay(1000);
+    Serial.print(".");
+  }
+  if (WiFi.status() != WL_CONNECTED)
+  {
+    Serial.println("Connect fail after " + String(wait) + " seconds.");
+    return false;
+  }
+
+  ssid = staSsid;
+  password = staPassword;
+
+  Serial.println();
+  Serial.println("Connected");
+  Serial.print("STA IP address: ");
+  Serial.println(WiFi.localIP());
+  return true;
+}
+
+void _handleWifiSet()
+{
+  String newssid = server.arg("ssid");
+  String newpass = server.arg("pass");
+  bool w = resetWifi((char *)newssid.c_str(), (char *)newpass.c_str(), 30);
+  if (w)
+  {
+    server.send(200, "text/plain", "ok, current ip " + WiFi.localIP().toString());
+  }
+  else
+  {
+    resetWifi((char *)ssid, (char *)password, 30);
+    server.send(200, "text/plain", "fail, current ip " + WiFi.localIP().toString());
+  }
+}
+void _handleWifiGet()
+{
+  server.send(200, "application/json", "{\"ip\":\"" + WiFi.localIP().toString() + "\",\"ssid\":\"" + ssid + "\",\"pass\":\"" + password + "\"}");
+}
+void initServerHandler()
+{
+  // handle index
+  server.on("/", []()
+            {
+    // send index.html
+    server.send(200, "text/html", "<html><head><script>var cs=console; var conn=new WebSocket('ws://' + location.hostname + ':9998/', ['arduino', ]); conn.onopen=function (){ conn.send('Connect ' + new Date()); ctr();}; conn.onerror=function (error){ cs.log('WebSocket Error ', error);}; conn.onmessage=function (e){ cs.log('Server: ', e.data);}; function ctr(){ var s=(document.getElementById('SPEED').value); var d=(document.getElementById('DIREC').value); var v='#' + s + ',' + d; conn.send(v); cs.log('send: ' + v);} </script></head><body>SPEED: <input id='SPEED' type='range' style='transform: rotate(-90deg);height: 129px;' value='0' min='-100' max='100' step='5' oninput='ctr();' /><br />DIREC: <input id='DIREC' type='range' value='0' min='-100' max='100' step='5' oninput='ctr();' /><br /></body></html>"); });
+  // handle post wifi config
+  server.on("/wifi/set", _handleWifiSet);
+  server.on("/wifi/get", _handleWifiGet);
+}
+
 // the setup routine runs once when you press reset:
 void setup()
 {
   Serial.begin(115200);
+  delay(1500);
   while (Serial.read() >= 0)
   {
   } // clear serial port's buffer
 
+  Serial.println();
   Serial.print("Speed initial pin ");
   Serial.print(escPin);
   Serial.print("(1000, 2000)");
@@ -264,41 +370,21 @@ void setup()
   // initialize digital pin LED_BUILTIN as an output.
   pinMode(LED_BUILTIN, OUTPUT);
   digitalWrite(LED_BUILTIN, HIGH); // turn the LED on (HIGH is the voltage level)
+  Serial.print("LED_BUILTIN ");
+  Serial.println(LED_BUILTIN);
 
   // wifi
-  {
-    WiFi.mode(WIFI_STA);
-    WiFi.begin(ssid, password);
-    Serial.println("Connecting to wifi");
-
-    // Wait for connection
-    while (WiFi.status() != WL_CONNECTED)
-    {
-      delay(500);
-      Serial.print(".");
-    }
-
-    Serial.println("");
-    Serial.print("Connected to ");
-    Serial.println(ssid);
-    Serial.print("IP address: ");
-    Serial.println(WiFi.localIP());
-  }
+  resetWifi((char *)ssid, (char *)password, 60);
 
   // start webSocket server
   webSocket.begin();
   webSocket.onEvent(webSocketEvent);
 
-  // handle index
-  server.on("/", []()
-            {
-    // send index.html
-    server.send(200, "text/html", "<html><head><script>var connection=new WebSocket('ws://' + location.hostname + ':9998/', ['arduino',]); connection.onopen=function (){ connection.send('Connect ' + new Date()); sendRGB();}; connection.onerror=function (error){ console.log('WebSocket Error ', error);}; connection.onmessage=function (e){ console.log('Server: ', e.data);}; function sendRGB(){ var rr=(document.getElementById('SPEED').value); var gg=(document.getElementById('DIRECTION').value); var rgb='#'+rr + ',' + gg; connection.send(rgb); console.log('send: ' + rgb);} </script></head><body>Controller: <br /><br />SPEED: <input id='SPEED' type='range' value='0' min='-100' max='100' step='5' oninput='sendRGB();' /><br />DIRECTION: <input id='DIRECTION' type='range' value='0' min='-100' max='100' step='5' oninput='sendRGB();' /><br /></body></html>"); });
-
+  initServerHandler();
   server.begin();
 }
 
-long long ts_led = millis();
+long long ledTs = millis();
 // the loop routine runs over and over again forever:
 void loop()
 {
@@ -317,17 +403,15 @@ void loop()
     ctrl(speed, direction);
   }
 
-  if (millis() - ts_led > 2000)
+  if (millis() - ledTs > 2000)
   {
+    ledTs = millis();
     digitalWrite(LED_BUILTIN, HIGH ^ digitalRead(LED_BUILTIN));
-    ts_led = millis();
+  }
 
-    Serial.print("Servo write ");
-    Serial.print(servoDegree); // show the integer number on Serial Monitor
-    servoWriteTo(servoDegree); // write the integer number to Servo in unit of micro-second
-
-    Serial.print(", ESC write ");
-    Serial.println(escDegree); // show the integer number on Serial Monitor
-    escWriteTo(escDegree);     // write the integer number to Servo in unit of micro-second
+  if (millis() - ctrlTs > 2000)
+  {
+    ctrlTs = millis();
+    writeTo(90, 90);
   }
 }
