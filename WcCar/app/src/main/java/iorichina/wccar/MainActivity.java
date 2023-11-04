@@ -2,6 +2,7 @@ package iorichina.wccar;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -15,6 +16,8 @@ import org.java_websocket.server.WebSocketServer;
 import io.github.controlwear.virtual.joystick.android.JoystickView;
 
 public class MainActivity extends AppCompatActivity {
+    JoystickView joystickVertical;
+    JoystickView joystickHorizontal;
     Button btnAction;
     ImageView btnCut;
     WebSocketServer server;
@@ -32,24 +35,37 @@ public class MainActivity extends AppCompatActivity {
             intent.setClass(this, JoystickActivity.class);
             startActivity(intent);
         });
+        ImageButton goMotion = findViewById(R.id.goMotion);
+        goMotion.setOnClickListener(var1 -> {
+            Intent intent = new Intent();
+            intent.setClass(this, MotionActivity.class);
+            startActivity(intent);
+        });
 
-        ImageView goLeft = findViewById(R.id.goLeft);
-        ImageView goRight = findViewById(R.id.goRight);
-        ImageView goBack = findViewById(R.id.goBack);
-        ImageView goForward = findViewById(R.id.goForward);
-        TextView ipText = findViewById(R.id.ipText2);
-        btnAction = findViewById(R.id.btnAction2);
-        btnCut = findViewById(R.id.stop);
+        joystickVertical = findViewById(R.id.joystickVertical);
+        joystickHorizontal = findViewById(R.id.joystickHorizontal);
+        TextView ipText = findViewById(R.id.ipText0);
+        btnAction = findViewById(R.id.btnAction0);
+        btnCut = findViewById(R.id.stop0);
+        btnCut.setVisibility(View.INVISIBLE);
 
         btnAction.setOnClickListener(view -> {
             if (null != client) {
                 client.close();
             }
-            client = new MainWebSocketClient(activity, goLeft, goRight, goBack, goForward, ipText.getText().toString());
+            client = new MainWebSocketClient(activity, joystickVertical, joystickHorizontal, ipText.getText().toString());
             client.connect();
+            ipText.setVisibility(View.INVISIBLE);
+            btnAction.setVisibility(View.INVISIBLE);
+            btnCut.setVisibility(View.VISIBLE);
         });
         btnCut.setOnClickListener(view -> {
-            client.stop();
+            if (null != client) {
+                client.close();
+            }
+            btnCut.setVisibility(View.INVISIBLE);
+            ipText.setVisibility(View.VISIBLE);
+            btnAction.setVisibility(View.VISIBLE);
         });
 
     }

@@ -17,13 +17,13 @@ import io.github.controlwear.virtual.joystick.android.JoystickView;
 public class MainWebSocketServer extends WebSocketServer {
     final FragmentActivity activity;
     final JoystickView joystick;
-    final MainJoystickListener joystickMoveListener;
+    final JoystickListener joystickMoveListener;
 
     public MainWebSocketServer(FragmentActivity activity, JoystickView joystick) {
         super(new InetSocketAddress(8789));
         this.activity = activity;
         this.joystick = joystick;
-        this.joystickMoveListener = new MainJoystickListener(activity, joystick);
+        this.joystickMoveListener = new JoystickListener(activity, joystick);
         joystick.setOnMoveListener(joystickMoveListener);
     }
 

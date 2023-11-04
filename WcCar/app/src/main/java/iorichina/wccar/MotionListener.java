@@ -14,7 +14,7 @@ import org.java_websocket.WebSocket;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class MainGoListener {
+public class MotionListener {
     final FragmentActivity activity;
 
     final ImageView goLeft;
@@ -30,7 +30,7 @@ public class MainGoListener {
     GoBackListener goBackListener;
     GoForwardListener goForwardListener;
 
-    public MainGoListener(
+    public MotionListener(
             FragmentActivity activity,
             ImageView goLeft,
             ImageView goRight,
@@ -54,10 +54,10 @@ public class MainGoListener {
     }
 
     static class GoLeftListener implements View.OnTouchListener {
-        MainGoListener main;
+        MotionListener main;
         Thread goLeftThread;
 
-        public GoLeftListener(MainGoListener main) {
+        public GoLeftListener(MotionListener main) {
             super();
             this.main = main;
         }
@@ -121,10 +121,10 @@ public class MainGoListener {
     }
 
     static class GoRightListener implements View.OnTouchListener {
-        MainGoListener main;
+        MotionListener main;
         Thread goRightThread;
 
-        public GoRightListener(MainGoListener main) {
+        public GoRightListener(MotionListener main) {
             super();
             this.main = main;
         }
@@ -188,10 +188,10 @@ public class MainGoListener {
     }
 
     static class GoBackListener implements View.OnTouchListener {
-        MainGoListener main;
+        MotionListener main;
         Thread goBackThread;
 
-        public GoBackListener(MainGoListener main) {
+        public GoBackListener(MotionListener main) {
             super();
             this.main = main;
         }
@@ -247,10 +247,10 @@ public class MainGoListener {
     }
 
     static class GoForwardListener implements View.OnTouchListener {
-        MainGoListener main;
+        MotionListener main;
         Thread goForwardThread;
 
-        public GoForwardListener(MainGoListener main) {
+        public GoForwardListener(MotionListener main) {
             super();
             this.main = main;
         }

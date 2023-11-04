@@ -45,7 +45,9 @@ public class JoystickActivity extends AppCompatActivity {
             client.connect();
         });
         btnCut.setOnClickListener(view -> {
-            client.stop();
+            if (null != client) {
+                client.close();
+            }
         });
 
 //        server = new MainWebSocketServer(this, joystick);

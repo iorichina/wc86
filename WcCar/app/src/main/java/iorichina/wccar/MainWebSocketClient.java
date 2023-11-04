@@ -17,21 +17,39 @@ public class MainWebSocketClient extends WebSocketClient {
 
     final FragmentActivity activity;
 
+    JoystickView joystickVertical;
+    JoystickView joystickHorizontal;
+    MainListener doubleJoystickListener;
+
     JoystickView joystick;
-    MainJoystickListener joystickMoveListener;
+    JoystickListener joystickListener;
 
     ImageView goLeft;
     ImageView goRight;
     ImageView goBack;
     ImageView goForward;
-    MainGoListener goListener;
+    MotionListener motionListener;
+
+    public MainWebSocketClient(FragmentActivity activity
+            , JoystickView joystickVertical
+            , JoystickView joystickHorizontal
+            , String ip
+    ) {
+        super(URI.create(ip));
+        this.activity = activity;
+        this.joystickVertical = joystickVertical;
+        this.joystickHorizontal = joystickHorizontal;
+        this.doubleJoystickListener = new MainListener(activity, joystickVertical, joystickHorizontal);
+        joystickVertical.setOnMoveListener(doubleJoystickListener.vertical);
+        joystickHorizontal.setOnMoveListener(doubleJoystickListener.horizontal);
+    }
 
     public MainWebSocketClient(FragmentActivity activity, JoystickView joystick, String ip) {
         super(URI.create(ip));
         this.activity = activity;
         this.joystick = joystick;
-        this.joystickMoveListener = new MainJoystickListener(activity, joystick);
-        joystick.setOnMoveListener(joystickMoveListener);
+        this.joystickListener = new JoystickListener(activity, joystick);
+        joystick.setOnMoveListener(joystickListener);
     }
 
     public MainWebSocketClient(
@@ -47,15 +65,18 @@ public class MainWebSocketClient extends WebSocketClient {
         this.goRight = goRight;
         this.goBack = goBack;
         this.goForward = goForward;
-        this.goListener = new MainGoListener(activity, goLeft, goRight, goBack, goForward);
+        this.motionListener = new MotionListener(activity, goLeft, goRight, goBack, goForward);
     }
 
     public void stop() {
-        if (null != joystickMoveListener) {
-            joystickMoveListener.go(0, 0);
+        if (null != doubleJoystickListener) {
+            doubleJoystickListener.go(0, 0);
         }
-        if (null != goListener) {
-            goListener.move(0, 0);
+        if (null != joystickListener) {
+            joystickListener.go(0, 0);
+        }
+        if (null != motionListener) {
+            motionListener.move(0, 0);
         }
     }
 
@@ -64,11 +85,14 @@ public class MainWebSocketClient extends WebSocketClient {
         String msg = "Client Open at " + getURI();
         Log.d("WebSocketClient", msg);
         activity.runOnUiThread(() -> Toast.makeText(activity, "WebSocketClient: " + msg, Toast.LENGTH_SHORT).show());
-        if (null != this.joystickMoveListener) {
-            this.joystickMoveListener.addWebSocket(this);
+        if (null != this.doubleJoystickListener) {
+            this.doubleJoystickListener.addWebSocket(this);
         }
-        if (null != this.goListener) {
-            this.goListener.addWebSocket(this);
+        if (null != this.joystickListener) {
+            this.joystickListener.addWebSocket(this);
+        }
+        if (null != this.motionListener) {
+            this.motionListener.addWebSocket(this);
         }
     }
 
@@ -76,20 +100,23 @@ public class MainWebSocketClient extends WebSocketClient {
     public void onMessage(String message) {
         String msg = "Client " + getURI() + " Message [" + message + "]";
         Log.d("WebSocketClient", msg);
-        activity.runOnUiThread(() -> Toast.makeText(activity, "WebSocketClient: " + msg, Toast.LENGTH_SHORT).show());
+//        activity.runOnUiThread(() -> Toast.makeText(activity, "WebSocketClient: " + msg, Toast.LENGTH_SHORT).show());
 
-        if ("joystickClient".equals(message)) {
-            activity.runOnUiThread(() -> Toast.makeText(activity, "WebSocketClient: joystickClient", Toast.LENGTH_SHORT).show());
-        }
+//        if ("joystickClient".equals(message)) {
+//            activity.runOnUiThread(() -> Toast.makeText(activity, "WebSocketClient: joystickClient", Toast.LENGTH_SHORT).show());
+//        }
     }
 
     @Override
     public void onClose(int code, String reason, boolean remote) {
-        if (null != this.joystickMoveListener) {
-            this.joystickMoveListener.removeWebSocket(this);
+        if (null != this.doubleJoystickListener) {
+            this.doubleJoystickListener.removeWebSocket(this);
         }
-        if (null != this.goListener) {
-            this.goListener.removeWebSocket(this);
+        if (null != this.joystickListener) {
+            this.joystickListener.removeWebSocket(this);
+        }
+        if (null != this.motionListener) {
+            this.motionListener.removeWebSocket(this);
         }
         String msg = "Client " + getURI() + " Close by " + reason + "(" + code + ")";
         Log.d("WebSocketClient", msg);
