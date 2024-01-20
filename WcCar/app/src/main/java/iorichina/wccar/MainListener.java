@@ -87,11 +87,23 @@ public class MainListener {
             int direction = 0;//-100~100
             //left
             if (angle < 180) {
-                direction = -strength;
+                if (strength < 30) {
+                    direction = -(int) Utils.map(strength, 0, 100, 0, 15);
+                } else if (strength < 60) {
+                    direction = -(int) Utils.map(strength, 0, 100, 0, 40);
+                } else {
+                    direction = -strength;
+                }
             }
             //right
             else {
-                direction = strength;
+                if (strength < 30) {
+                    direction = (int) Utils.map(strength, 0, 100, 0, 15);
+                } else if (strength < 60) {
+                    direction = (int) Utils.map(strength, 0, 100, 0, 40);
+                } else {
+                    direction = strength;
+                }
             }
             return direction;
         }
@@ -148,7 +160,13 @@ public class MainListener {
             int speed = 0;//-100~100
             //forward
             if (angle < 180) {
-                speed = (int) Utils.map(strength, 0, 100, 15, 40);
+                if (strength < 30) {
+                    speed = (int) Utils.map(strength, 0, 100, 15, 25);
+                } else if (strength < 60) {
+                    speed = (int) Utils.map(strength, 0, 100, 15, 35);
+                } else {
+                    speed = (int) Utils.map(strength, 0, 100, 15, 50);
+                }
             } else {
                 speed = -(int) Utils.map(strength, 0, 100, 15, 20);
             }
